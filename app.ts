@@ -49,7 +49,7 @@ const api = createApplication({
 })
 
 const app = express()
-const port = 3000
+const port = process.env.LOCAL_PORT ?? 4000
 app.use(
   "/graphql",
   graphqlHTTP({
