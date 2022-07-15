@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "SET NODE_ENV=development & nodemon app.ts",
+    "dev": "NODE_ENV=development & nodemon app.ts",
     "start": "tsc --build && node dist/app.js",
     "start:clean": "rm -rf dist && tsc --build && node dist/app.js",
     "format": "prettier . --write",
@@ -34,10 +34,12 @@
     "@aws-sdk/client-s3": "^3.121.0",
     "@aws-sdk/s3-request-presigner": "^3.121.0",
     "@prisma/client": "^4.0.0",
+    "aws-sdk": "^2.1175.0",
     "express": "^4.18.1",
     "express-graphql": "^0.12.0",
     "graphql": "^16.5.0",
     "graphql-modules": "^2.1.0",
-    "luxon": "^3.0.1"
+    "luxon": "^3.0.1",
+    "uuidv4": "^6.2.13"
   }
 }

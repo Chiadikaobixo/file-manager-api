@@ -12,7 +12,7 @@ export interface FileBucket {
   getSignedUrl(
     operation: "get" | "put",
     key: string,
-    bucketId: string
+    bucketId?: string
   ): Promise<string>
   saveFile(key: string, file: FakeAwsFile, bucketId?: string): Promise<string>
   deleteObject(key: string, bucketId?: string): Promise<void>

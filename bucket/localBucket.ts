@@ -3,8 +3,11 @@ import { DateTime } from "luxon"
 import { dirname, join } from "path"
 import { FakeAwsFile, FileBucket, SIGNED_URL_EXPIRES } from "./bucket"
 
-const appRoot = require.main?.path[0].split("node_modules")[0].slice(0, -1)
+const appRoot = require.main?.paths[0].split("node_modules")[0].slice(0, -1)
+console.log(appRoot)
+console.log(appRoot)
 const rootDir = `${appRoot ?? "."}/.files`
+console.log(rootDir)
 const baseUrl = `http://localhost:${process.env.LOCAL_PORT ?? 4000}/file`
 
 export function getLocalBucket(): FileBucket {
@@ -26,7 +29,6 @@ function getSignedUrl(operation: "get" | "put", key: string) {
   return Promise.resolve(url.toString())
 }
 
-
 function getPath(key: string): string {
   return join(`${rootDir}`, key)
 }
@@ -37,7 +39,10 @@ async function writeFile(key: string, data: Parameters<typeof fsWrite>[1]) {
   await fs.writeFile(path, data)
 }
 
-export async function saveFile(key: string, file: FakeAwsFile): Promise<string> {
+export async function saveFile(
+  key: string,
+  file: FakeAwsFile
+): Promise<string> {
   const { Body, ...info } = file
   await writeFile(key, Body)
   await writeFile(
@@ -52,7 +57,83 @@ export async function saveFile(key: string, file: FakeAwsFile): Promise<string> 
   return url
 }
 
-async function deleteObject(key: string){
-    await fs.unlink(getPath(key))
-    await fs.unlink(getPath(key) + ".info")
+async function deleteObject(key: string) {
+  await fs.unlink(getPath(key))
+  await fs.unlink(getPath(key) + ".info")
+}
+
+export async function downloadLocalFile(
+  signedUrl: string
+): Promise<FakeAwsFile> {
+  const key = validateSignedUrl("get", signedUrl)
+  return await getObject(key)
+}
+
+export async function uploadLocalFile(
+  signedUrl: string,
+  file: FakeAwsFile
+): Promise<void> {
+  const key = validateSignedUrl('put', signedUrl)
+  await saveFile(key, {
+    ContentLength: file.Body.byteLength,
+    LastModified: new Date(),
+    ...file
+  })
+}
+
+async function getObject(key: string): Promise<FakeAwsFile> {
+  const rest = await headObject(key)
+  const Body = await fs.readFile(getPath(key))
+  return { ...rest, Body }
+}
+
+async function headObject(key: string): Promise<FakeAwsFile> {
+  const path = getPath(key)
+
+  try {
+    await fs.stat(path)
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+  }
+
+  const raw = await fs.readFile(path + ".info")
+  const parsedInfo = JSON.parse(raw.toString()) as FakeAwsFile
+
+  const info = {
+    ...parsedInfo,
+    ...(parsedInfo.LastModified
+      ? { LastModified: new Date(parsedInfo.LastModified) }
+      : {}),
+  }
+  return info
+}
+
+function validateSignedUrl(operation: "get" | "put", url: string) {
+  const searchParams = new URL(url).searchParams
+  const rawSigned = searchParams.get("signed") ?? url
+
+  try {
+    const signed = JSON.parse(rawSigned) as {
+      operation: string
+      key: string
+      expires: number
+    }
+
+    if (signed.operation !== operation) {
+      throw new Error("Incorrect Operation")
+    }
+
+    if (DateTime.local() > DateTime.fromMillis(signed.expires)) {
+      throw new Error("URL Expired")
+    }
+    return signed.key
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    } else {
+      throw new Error("Could not Validate URL")
+    }
+  }
 }
