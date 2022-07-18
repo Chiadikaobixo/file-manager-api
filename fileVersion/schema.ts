@@ -1,5 +1,6 @@
 import { FileVersion } from "@prisma/client"
 import { createModule, gql } from "graphql-modules"
+import { Pagination } from "../app"
 import { prismaClient } from "../prisma"
 import * as fileVersionService from "./service"
 
@@ -40,6 +41,11 @@ export const fileVersionModule = createModule({
 
       extend type Query {
         getAllFileVersions: [FileVersion]!
+        getFileVersion(id: ID!): FileVersion!
+        getFileVersions(
+          fileId: ID!
+          pagination: PaginationInput
+        ): [FileVersion]!
         requestFileDownload(key: String!): String!
       }
 
@@ -56,15 +62,33 @@ export const fileVersionModule = createModule({
       getAllFileVersions: () => {
         return prismaClient().fileVersion.findMany()
       },
+      getFileVersion: async (_: unknown, { id }: { id: string }) => {
+        return await fileVersionService.getFileVersion(prismaClient(), id)
+      },
+      getFileVersions: async (
+        _: unknown,
+        { fileId, pagination }: { fileId: string; pagination?: Pagination }
+      ) => {
+        return await fileVersionService.getFileVersions(
+          prismaClient(),
+          fileId,
+          pagination
+        )
+      },
       requestFileDownload: async (_: unknown, { key }: { key: string }) => {
         return await fileVersionService.requestFileDownload(key)
       },
     },
     Mutation: {
-      createFileVersion: async(_: unknown, { input } : {input: 
-        fileVersionService.CreateFileVersionInput}) : Promise<FileVersion & {url: string}> => {
-          return await fileVersionService.createFileVersionRecord(prismaClient(), input)
-        }
-    }
+      createFileVersion: async (
+        _: unknown,
+        { input }: { input: fileVersionService.CreateFileVersionInput }
+      ): Promise<FileVersion & { url: string }> => {
+        return await fileVersionService.createFileVersionRecord(
+          prismaClient(),
+          input
+        )
+      },
+    },
   },
 })
