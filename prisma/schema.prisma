@@ -44,7 +44,7 @@ model Directory {
   createdAt   DateTime    @default(now())
   updateAt    DateTime    @updatedAt
   files       File[]
-  Directories Directory[] @relation("DirectoryToDirectory")
+  directories Directory[] @relation("DirectoryToDirectory")
 
   @@map("directories")
 }
