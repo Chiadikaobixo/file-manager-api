@@ -9,10 +9,15 @@ export async function createDirectory(
   if (name === "root") {
     throw new Error("Directory name 'root' is already reserved")
   }
+  const parent = parentId
+    ? await client.directory.findUnique({ where: { id: parentId } })
+    : null
+    const ancestors = parent?.ancestors ?? []
   const directory = await client.directory.create({
     data: {
       name,
       parentId,
+      ancestors : [...ancestors, ...(parentId? [parentId] : [])]
     },
   })
   return directory
@@ -53,11 +58,16 @@ export async function deleteDirectory(
   client: PrismaClient,
   id: Directory["id"]
 ): Promise<boolean> {
-  const files = await client.file.findMany({ where: { directoryId: id } })
+  const files = await client.file.findMany({ 
+    where: { ancestors: {has: id} } 
+  })
   for (const file of files) {
     await deleteFile(client, file.id)
   }
-  await client.directory.delete({ where: { id } })
+  await client.$transaction([
+    client.directory.deleteMany({where: { ancestors: {has: id} } }),
+    client.directory.delete({ where: { id } })
+  ])
   return true
 }
 

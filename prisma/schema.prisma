@@ -15,6 +15,7 @@ model File {
   name         String
   directory    Directory     @relation(fields: [directoryId], references: [id])
   directoryId  String
+  ancestors    String[]
   createdAt    DateTime      @default(now())
   updateAt     DateTime      @updatedAt
   fileVersions FileVersion[]
@@ -44,6 +45,7 @@ model Directory {
   createdAt   DateTime    @default(now())
   updateAt    DateTime    @updatedAt
   files       File[]
+  ancestors   String[]
   directories Directory[] @relation("DirectoryToDirectory")
 
   @@map("directories")

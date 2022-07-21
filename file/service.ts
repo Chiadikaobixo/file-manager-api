@@ -16,9 +16,15 @@ export async function createFileRecord(
 ): Promise<{ file: File; url: string }> {
   const { name, directoryId, size, mimeType, key: keyInput } = file
   const key = keyInput ?? uuid()
+
+  const directory = await client.directory.findUnique({
+    where: { id: directoryId },
+  })
+  const ancestors = directory?.ancestors ?? []
   const data = {
     name,
     directoryId,
+    ancestors: [...ancestors, directoryId],
     fileVersions: {
       create: {
         name,
@@ -52,9 +58,19 @@ export async function moveFile(
   id: File["id"],
   directoryId: File["directoryId"]
 ): Promise<File> {
+  const directory = await client.directory.findUnique({
+    where: { id: directoryId },
+  })
+  if (!directory) {
+    throw new Error("Invalid target Directory")
+  }
+  const { ancestors } = directory
   return await client.file.update({
     where: { id },
-    data: { directoryId },
+    data: {
+      directoryId,
+      ancestors: [...ancestors, directoryId],
+    },
     include: { fileVersions: true },
   })
 }
