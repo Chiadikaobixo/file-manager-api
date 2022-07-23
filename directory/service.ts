@@ -1,5 +1,25 @@
 import { Directory, PrismaClient } from "@prisma/client"
+import { Pagination } from "../app"
 import { deleteFile } from "../file/service"
+
+export interface DirectoryContentResult {
+  id: string
+  name: string
+  mimeType: string
+  size: number
+  key: string
+  createdAt: Date
+  updateAt: Date
+  type: "File" | "Directory"
+}
+
+export interface Sort {
+  field: keyof Pick<
+    DirectoryContentResult,
+    "name" | "size" | "createdAt" | "updateAt"
+  >
+  direction?: "ASC" | "DESC"
+}
 
 export async function createDirectory(
   client: PrismaClient,
@@ -31,6 +51,102 @@ export async function getDirectory(
     where: { id },
     include: { directories: true, files: true },
   })
+}
+
+export async function getDirectoryContents(
+  client: PrismaClient,
+  id: Directory["id"],
+  pagination?: Pagination,
+  sort?: Sort
+): Promise<DirectoryContentResult[]> {
+  const [files, directories] = await client.$transaction([
+    client.file.findMany({
+      where: {
+        ancestors: {
+          has: id,
+        },
+      },
+      include: {
+        fileVersions: {
+          distinct: ["fileId"],
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    }),
+    client.directory.findMany({
+      where: {
+        ancestors: {
+          has: id,
+        },
+      },
+    }),
+  ])
+
+  const filesWithVersion = files.map((file) => {
+    const { id, name, createdAt, updateAt, fileVersions } = file
+    const { mimeType, size, key } = fileVersions[0]
+    return {
+      id,
+      name,
+      createdAt,
+      updateAt,
+      mimeType,
+      size,
+      key,
+      type: "File" as const,
+    }
+  })
+
+  const directoriesWithVersion = directories.map((directory) => {
+    const { id, name, createdAt, updateAt } = directory
+    return {
+      id,
+      name,
+      createdAt,
+      updateAt,
+      mimeType: "",
+      size: 0,
+      key: "",
+      type: "Directory" as const,
+    }
+  })
+  const { field = "name", direction = "ASC" } = sort ?? {}
+  const { page = 1, pageLength = 20 } = pagination ?? {}
+
+  const contents =
+    field === "name"
+      ? [...filesWithVersion, ...directoriesWithVersion].sort((a, b) => {
+          return a.name > b.name
+            ? direction === "ASC"
+              ? 1
+              : -1
+            : a.name < b.name
+            ? direction === "ASC"
+              ? -1
+              : 1
+            : 0
+        })
+      : [
+          ...directoriesWithVersion.sort((a, b) => {
+            return a.name > b.name ? 1 : a.name < b.name ? -1 : 0
+          }),
+          ...filesWithVersion.sort((a, b) => {
+            return a[field] > b[field]
+              ? direction === "ASC"
+                ? 1
+                : -1
+              : a[field] < b[field]
+              ? direction === "ASC"
+                ? -1
+                : 1
+              : 0
+          }),
+        ]
+  const paginationContents = contents.slice(
+    (page - 1) * pageLength,
+    (page - 1) * pageLength + pageLength
+  )
+  return paginationContents
 }
 
 export async function renameDirectory(
@@ -167,17 +283,14 @@ export async function moveDirectory(
       where: { id: thisDirectory.id },
       data: {
         parentId: destinationDirectory.id,
-        ancestors: [
-          ...destinationAncestors,
-          destinationDirectory.id
-        ],
+        ancestors: [...destinationAncestors, destinationDirectory.id],
       },
     }),
   ])
 
   return (await client.directory.findUnique({
-    where: {id},
-    include: {directories: true, files: true}
+    where: { id },
+    include: { directories: true, files: true },
   })) as Directory
 }
 
