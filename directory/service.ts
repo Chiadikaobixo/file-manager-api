@@ -215,6 +215,44 @@ export async function getDirectoryContents(
   return paginationContents
 }
 
+export async function countDirectoryChildren(
+  client: PrismaClient,
+  id: Directory["id"]
+): Promise<number> {
+  const [files, directories] = await client.$transaction([
+    client.file.count({
+      where: {
+        ancestors: { has: id },
+      },
+    }),
+    client.directory.count({
+      where: {
+        ancestors: { has: id },
+      },
+    }),
+  ])
+  return directories + files
+}
+
+export async function getDirectorySize(
+  client: PrismaClient,
+  id: Directory["id"]
+): Promise<number | null> {
+  const {
+    _sum: { size },
+  } = await client.fileVersion.aggregate({
+    _sum: {
+      size: true,
+    },
+    where: {
+      file: {
+        ancestors: { has: id },
+      },
+    },
+  })
+  return size
+}
+
 export async function renameDirectory(
   client: PrismaClient,
   id: Directory["id"],
