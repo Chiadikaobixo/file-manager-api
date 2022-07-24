@@ -39,6 +39,11 @@ export const directoryModule = createModule({
       extend type Query {
         getAllDirectories: [Directory]!
         getDirectory(id: ID!): Directory
+        getDirectoryContentsRaw(
+          id: ID!
+          pagination: PaginationInput
+          sort: SortInput
+        ): [DirectoryContentResult]!
         getDirectoryContents(
           id: ID!
           pagination: PaginationInput
@@ -65,6 +70,25 @@ export const directoryModule = createModule({
         { id }: { id: Directory["id"] }
       ): Promise<Directory | null> => {
         return await directoryService.getDirectory(prismaClient(), id)
+      },
+      getDirectoryContentsRaw: (
+        _: unknown,
+        {
+          id,
+          pagination,
+          sort,
+        }: {
+          id: Directory["id"]
+          pagination: Pagination
+          sort: directoryService.Sort
+        }
+      ): Promise<directoryService.DirectoryContentResult[]> => {
+        return directoryService.getDirectoryContentsRaw(
+          prismaClient(),
+          id,
+          pagination,
+          sort
+        )
       },
       getDirectoryContents: (
         _: unknown,
