@@ -18,6 +18,7 @@ model File {
   ancestors    String[]
   createdAt    DateTime      @default(now())
   updateAt     DateTime      @updatedAt
+  deletedAt    DateTime?
   fileVersions FileVersion[]
 
   @@map("files")
@@ -33,6 +34,7 @@ model FileVersion {
   fileId    String
   createdAt DateTime @default(now())
   updateAt  DateTime @updatedAt
+  deletedAt DateTime?
 
   @@map("file_versions")
 }
@@ -44,6 +46,7 @@ model Directory {
   parentId    String?
   createdAt   DateTime    @default(now())
   updateAt    DateTime    @updatedAt
+  deletedAt   DateTime?
   files       File[]
   ancestors   String[]
   directories Directory[] @relation("DirectoryToDirectory")
