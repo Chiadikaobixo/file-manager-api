@@ -49,7 +49,7 @@ export async function getFile(
 ): Promise<File | null> {
   return await client.file.findUnique({
     where: { id },
-    include: { fileVersions: true },
+    include: { fileVersions: { where: { deletedAt: null } } },
   })
 }
 
@@ -91,16 +91,17 @@ export async function deleteFile(
   client: PrismaClient,
   id: File["id"]
 ): Promise<boolean> {
-  const allFileVersions = await client.file
+  // const allFileVersions =
+   await client.file
     .findUnique({ where: { id } })
     .fileVersions()
   await client.$transaction([
     client.fileVersion.deleteMany({ where: { fileId: id } }),
     client.file.delete({ where: { id } }),
   ])
-  for (const version of allFileVersions) {
-    await getBucket().deleteObject(version.key)
-  }
+  // for (const version of allFileVersions) {
+  //   await getBucket().deleteObject(version.key)
+  // }
   return true
 }
 
@@ -116,6 +117,6 @@ export async function findFiles(
       },
     },
     orderBy: [{ name: "asc" }],
-    include: { fileVersions: true },
+    include: { fileVersions: { where: { deletedAt: null } } },
   })
 }

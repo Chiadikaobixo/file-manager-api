@@ -16,6 +16,7 @@ export const directoryModule = createModule({
         ancestors: [String]!
         createdAt: String!
         updateAt: String!
+        deletedAt: String
         files: [File]!
         directories: [Directory]!
         children: Int!

@@ -15,6 +15,7 @@ export const fileModule = createModule({
         ancestors: [String]!
         createdAt: String!
         updateAt: String!
+        deletedAt: String
         fileVersions: [FileVersion]!
       }
 

@@ -71,7 +71,7 @@ export async function getFileVersions(
           take: pagination.pageLength,
         }
       : {}),
-    where: { fileId },
+    where: { fileId, deletedAt: null },
   })
 }
 
@@ -90,7 +90,8 @@ export async function deleteFileVersion(
   client: PrismaClient,
   id: FileVersion["id"]
 ): Promise<boolean> {
-  const version = await client.fileVersion.delete({ where: { id } })
-  await getBucket().deleteObject(version.key)
+  // const version = 
+  await client.fileVersion.delete({ where: { id } })
+  // await getBucket().deleteObject(version.key)
   return true
 }
