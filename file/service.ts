@@ -104,11 +104,15 @@ export async function moveFile(
     throw new Error("Invalid target Directory")
   }
   const { ancestors } = directory
+  const updatedHistory = await updateFileHistory(client, id, {
+    directory: directory.id,
+  })
   return await client.file.update({
     where: { id },
     data: {
       directoryId,
       ancestors: [...ancestors, directoryId],
+      history: updatedHistory,
     },
     include: { fileVersions: true },
   })
@@ -119,9 +123,10 @@ export async function renameFile(
   id: File["id"],
   name: File["name"]
 ): Promise<File> {
+  const updatedHistory = await updateFileHistory(client, id, { name })
   return await client.file.update({
     where: { id },
-    data: { name },
+    data: { name, history: updatedHistory },
     include: { fileVersions: true },
   })
 }
@@ -132,7 +137,9 @@ export async function deleteFile(
 ): Promise<boolean> {
   // const allFileVersions =
   await client.file.findUnique({ where: { id } }).fileVersions()
+  const updatedHistory = await updateFileHistory(client, id, { deleted: true })
   await client.$transaction([
+    client.file.update({ where: { id }, data: { history: updatedHistory } }),
     client.fileVersion.deleteMany({ where: { fileId: id } }),
     client.file.delete({ where: { id } }),
   ])

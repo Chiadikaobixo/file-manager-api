@@ -2,6 +2,7 @@ import { File, FileVersion, Prisma, PrismaClient } from "@prisma/client"
 import { getBucket } from "../bucket"
 import { v4 as uuidv4 } from "uuid"
 import { Pagination } from "../app"
+import { updateFileHistory } from "../file/service"
 
 const fileVersionInputFields = Prisma.validator<Prisma.FileVersionArgs>()({
   select: { fileId: true, name: true, mimeType: true, size: true },
@@ -37,6 +38,15 @@ export async function createFileVersionRecord(
       key,
     },
     include: { file: true },
+  })
+
+  await client.file.update({
+    where: { id: file.id },
+    data: {
+      history: await updateFileHistory(client, file.id, {
+        version: JSON.stringify(version),
+      }),
+    },
   })
   const bucket = getBucket()
 
@@ -90,7 +100,7 @@ export async function deleteFileVersion(
   client: PrismaClient,
   id: FileVersion["id"]
 ): Promise<boolean> {
-  // const version = 
+  // const version =
   await client.fileVersion.delete({ where: { id } })
   // await getBucket().deleteObject(version.key)
   return true
