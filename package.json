@@ -14,7 +14,7 @@
     "build": "tsc --build",
     "build:clean": "rm -rf dist && tsc --build"
   },
-  "prisma":{
+  "prisma": {
     "seed": "ts-node seed.ts"
   },
   "author": "",
@@ -44,6 +44,7 @@
     "express-graphql": "^0.12.0",
     "graphql": "^16.5.0",
     "graphql-modules": "^2.1.0",
+    "graphql-type-json": "^0.3.2",
     "luxon": "^3.0.1",
     "uuidv4": "^6.2.13"
   }

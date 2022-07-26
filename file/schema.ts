@@ -13,6 +13,7 @@ export const fileModule = createModule({
         name: String!
         directoryId: ID!
         ancestors: [String]!
+        history: JSON
         createdAt: String!
         updateAt: String!
         deletedAt: String
