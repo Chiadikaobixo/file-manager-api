@@ -300,7 +300,7 @@ export async function moveDirectory(
 
   const childFilesOfThisDirectory = await client.file.findMany({
     where: { directoryId: id },
-    select: { id: true, ancestors: true },
+    select: { id: true, ancestors: true, history: true },
   })
 
   const descendentFilesOfThisDirectory = await client.file.findMany({
@@ -309,7 +309,7 @@ export async function moveDirectory(
         has: thisDirectory.id,
       },
     },
-    select: { id: true, ancestors: true },
+    select: { id: true, ancestors: true, history: true },
   })
 
   const descendentDirectoriesOfThisDirectory = await client.directory.findMany({
@@ -332,6 +332,14 @@ export async function moveDirectory(
         where: { id: file.id },
         data: {
           ancestors: updatedAncestors,
+          history: [
+            ...(file.history &&
+            typeof file.history === "object" &&
+            Array.isArray(file.history)
+              ? file.history
+              : []),
+            { ancestors: JSON.stringify(updatedAncestors) },
+          ],
         },
       })
     }),
@@ -348,6 +356,14 @@ export async function moveDirectory(
         where: { id: file.id },
         data: {
           ancestors: updatedAncestors,
+          history: [
+            ...(file.history &&
+            typeof file.history === "object" &&
+            Array.isArray(file.history)
+              ? file.history
+              : []),
+            { ancestors: JSON.stringify(updatedAncestors) },
+          ],
         },
       })
     }),
@@ -411,7 +427,9 @@ export async function deleteDirectory(
     await deleteFile(client, file.id)
   }
   await client.$transaction([
-    client.directory.deleteMany({ where: { ancestors: { has: id }, deletedAt: null  } }),
+    client.directory.deleteMany({
+      where: { ancestors: { has: id }, deletedAt: null },
+    }),
     client.directory.delete({ where: { id } }),
   ])
   return true
